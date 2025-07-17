@@ -14,9 +14,13 @@ impl InitIf for InitIfImpl {
     /// and performed earliest platform configuration and initialization (e.g.,
     /// early console, clocking).
     fn init_early(_cpu_id: usize, _dtb: usize) {
+        axplat::console_println!("init_early on RK3588");
         axcpu::init::init_trap();
         axplat_aarch64_peripherals::psci::init(PSCI_METHOD);
-        super::dw_apb_uart::init_early();
+
+        // Todo, compatible = "rockchip,rk3588-uart\0snps,dw-apb-uart"
+        //super::dw_apb_uart::init_early();
+
         axplat_aarch64_peripherals::generic_timer::init_early();
     }
 

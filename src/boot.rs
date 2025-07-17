@@ -16,22 +16,28 @@ unsafe fn init_boot_page_table() {
     unsafe {
         // 0x0000_0000_0000 ~ 0x0080_0000_0000, table
         BOOT_PT_L0[0] = A64PTE::new_table(pa!(&raw mut BOOT_PT_L1 as usize));
-        // 0x0000_0000_0000..0x0000_4000_0000, 1G block, device memory
+        // 0x0000_0000_0000..0x0000_4000_0000, 1G block, normal memory
         BOOT_PT_L1[0] = A64PTE::new_page(
-            pa!(0),
-            MappingFlags::READ | MappingFlags::WRITE | MappingFlags::DEVICE,
+            pa!(0x0),
+            MappingFlags::READ | MappingFlags::WRITE | MappingFlags::EXECUTE,
             true,
         );
-        // 1G block, device memory
+        // 1G block, normal memory
         BOOT_PT_L1[1] = A64PTE::new_page(
             pa!(0x40000000),
-            MappingFlags::READ | MappingFlags::WRITE | MappingFlags::DEVICE,
+            MappingFlags::READ | MappingFlags::WRITE | MappingFlags::EXECUTE,
             true,
         );
         // 1G block, normal memory
         BOOT_PT_L1[2] = A64PTE::new_page(
             pa!(0x80000000),
             MappingFlags::READ | MappingFlags::WRITE | MappingFlags::EXECUTE,
+            true,
+        );
+        // 1G block, device memory. From 0xfb000000
+        BOOT_PT_L1[3] = A64PTE::new_page(
+            pa!(0xc0000000),
+            MappingFlags::READ | MappingFlags::WRITE | MappingFlags::DEVICE,
             true,
         );
     }
@@ -86,6 +92,20 @@ unsafe extern "C" fn _start_primary() -> ! {
         mrs     x19, mpidr_el1
         and     x19, x19, #0xffffff     // get current CPU id
         mov     x20, x0                 // save DTB pointer
+
+        // Uart0 = 0xfeb50000
+        mov x9, #0x0
+        movk x9, #0xfeb5, lsl #16
+        lsr x19, x19, #8
+        // ID Hi
+        add x10, x19, #48
+        str x10, [x9]
+        mov x10, #72
+        str x10, [x9]
+        mov x10, #105
+        str x10, [x9]
+        mov x10, #10
+        str x10, [x9]
 
         adrp    x8, {boot_stack}        // setup boot stack
         add     x8, x8, {boot_stack_size}

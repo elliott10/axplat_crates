@@ -43,7 +43,7 @@ pub fn init_irq() {
 /// UART IRQ Handler
 #[allow(dead_code)]
 pub fn handle() {
-    trace!("Uart IRQ Handler");
+    debug!("Uart IRQ Handler");
 }
 
 struct ConsoleIfImpl;
