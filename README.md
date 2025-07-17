@@ -1,14 +1,44 @@
 # axplat-aarch64-rk3588
 
-Implementation of [axplat](https://github.com/arceos-org/axplat_crates/tree/main/axplat) hardware abstraction layer for Black Sesame Technology A1000b SoC.
+Implementation of ArceOS [axplat](https://github.com/arceos-org/axplat_crates/tree/main/axplat) hardware abstraction layer for `Rockchip RK3588` board.
 
-## Install
+## QUICK START
+
+#### Firstly, Install Rockchip RK3588 platform dependency crate.
+
+*Take  APP:examples/shell as an example*<br>
+*Run only for the first time*
 
 ```bash
-cargo +nightly add axplat axplat-aarch64-rk3588
+cd /path/to/ArceOS
+
+cargo axplat add axplat-aarch64-rk3588 --package arceos-shell --features smp --git https://github.com/elliott10/axplat_crates.git
+
+# Check the information of Rockchip RK3588 platform
+cargo axplat info axplat-aarch64-rk3588
+
+# Add the platform dependency crate on ArceOS App.
+# eg. examples/shell
+echo "extern crate axplat_aarch64_rk3588;" >> examples/shell/src/main.rs
 ```
 
-## Usage
+#### Compile the U-Boot bootable image
+
+A u-boot bootable image file `examples/shell/shell_aarch64-rk3588.uimg` will be generated.
+
+```bash
+make SMP=8 MYPLAT=axplat-aarch64-rk3588 A=examples/shell FEATURES=page-alloc-4g,driver-ramdisk BUS=mmio UIMAGE=y
+```
+
+#### Boot ArceOS image by U-Boot
+
+As you can see in the following picture, 
+
+ArceOS is launched on Rockchip RK3588 and all `8` cores have been launched !
+
+![boot on rk3588](boot-on-rk3588.png)
+
+## Usage of the code
 
 #### 1. Write your kernel code
 
@@ -35,45 +65,4 @@ fn kernel_main(cpu_id: usize, arg: usize) -> ! {
 extern crate axplat_aarch64_rk3588;
 ```
 
-#### 3. Use a linker script like the following
-
-```text
-ENTRY(_start)
-SECTIONS
-{
-    . = 0xffff000081000000;
-
-    .text : ALIGN(4K) {
-        *(.text.boot)               /* This section is required */
-        *(.text .text.*)
-    }
-
-    .rodata : ALIGN(4K) {
-        *(.rodata .rodata.*)
-    }
-
-    .data : ALIGN(4K) {
-        *(.data .data.*)
-    }
-
-    .bss : ALIGN(4K) {
-        *(.bss.stack)               /* This section is required */
-        . = ALIGN(4K);
-        *(.bss .bss.*)
-        *(COMMON)
-    }
-
-    _ekernel = .;                   /* Symbol `_ekernel` is required */
-
-    /DISCARD/ : {
-        *(.comment)
-    }
-}
-```
-
-Some symbols and sections are required to be defined in the linker script, listed as below:
-- `_ekernel`: End of kernel image.
-- `.text.boot`: Kernel boot code.
-- `.bss.stack`: Stack for kernel booting.
-
-[hello-kernel](https://github.com/arceos-org/axplat_crates/tree/main/examples/hello-kernel) is a complete example of a minimal kernel implemented using [axplat](https://github.com/arceos-org/axplat_crates/tree/main/axplat) and related platform packages.
+#### 3. Optional: Use a linker script
